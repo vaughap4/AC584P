@@ -1,0 +1,114 @@
+---
+title: "Child Malnutrition Across Nations:"
+subtitle: "Exploring the Interplay of Economic Development and Lifespan"
+author: "Patrick Vaughan"
+Date: 202
+format: html
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+#packages
+install.packages("devtools")
+devtools::install_github("r-lib/conflicted")
+install.packages("tidyverse")
+
+#libraries
+library(tidyverse)
+library(gapminder)
+
+#data
+Indicator_2 <- read.csv("/cloud/project/unicef_indicator_2.csv")
+Metadata <- read.csv("/cloud/project/unicef_metadata.csv")
+```
+
+We live in the age of ***instant*** information, and yet despite this the majority of the population are not receiving information that is accurate, important, relevant.
+For example, one issue that is not discussed enough is the state of **child malnutrition** across the globe. Child malnutrition includes;
+1. Wasting
+2. Stunting
+3. Overweight
+By formatting data into **visual arrangements**, we can provide greater insight into this pressing issue, its link to a country's economic performance, and the trends amongst each continent.
+
+
+### Percentage of Children Wasting, Stunted or Overweight
+```{r}
+#| echo: false
+Mean_value<-select(Indicator_2,country,obs_value)%>%
+  group_by(country)%>%
+  summarise(avg_value = mean(obs_value))
+
+map_world <- map_data("world")
+map_Ind2_country <- full_join(map_world, Mean_value, by = c("region" = "country"))
+
+ggplot(data = map_Ind2_country) +
+  aes(x = long, y = lat, group = group, fill = avg_value) +
+  geom_polygon()
+```
+
+This map provides us with an indicator of just how serious this situation is. The use of colour illustrates the depth of each country’s struggles with this matter, with many of the figures on display being worryingly high.
+
+
+Such damning figures display just how many nations have worrying levels of child malnutrition, to the point where many could consider it a crisis. As such it is vital that we highlight any potential factors affecting this emergency, in order to begin to solve this problem.
+
+### GDP vs Child Malnutrition
+```{r}
+#| echo: false
+
+GDP_per_country<-select(Metadata,country,GDP_per_capita)
+GDP_per_country<-GDP_per_country[!(is.na(GDP_per_country$GDP_per_capita)), ]
+GDP_per_country_total<- group_by(GDP_per_country,country)
+Mean_GDP<-summarise(GDP_per_country_total, avg_value = mean(GDP_per_capita))
+
+
+GDPvValue <-inner_join(Mean_value,Mean_GDP,by="country")
+
+ggplot(data = GDPvValue) +
+  aes(x=avg_value.y,
+      y=avg_value.x) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+One potentially important factor in this matter may be a country's economic performance. As the graph on the right clearly shows there is a strong negative correlation between a country's GDP per capita, and the percentage of its' child population that are either wasting, stunted or overweight.
+This shows us that the poorer a nation is, the more likely they are to have high rates of child malnutrition. While not the sole cause of the issue, there is clearly a strong link between the two matters.
+
+### Life Expectancy vs Child Malnutrition
+*Time Series Chart* While the factors influencing child malnutrition are worrying, it is the effects of this subject that cause serious concern.
+The chart on our left shows us that there is a strong correlation between higher rates of children wasting, stunted or overweight, and lower life expectancies.
+The link between the two metrics indicates, that high levels of child malnutrition are contributing significantly to shorter lifespans.
+
+### Life Expectancy in Malnourished Countries // Life Expectancy in Countries not concerned with Child Malnutrition
+```{r}
+#| echo: false
+continent_data<-select(gapminder,country,continent,year)
+Value_Continent<-inner_join(continent_data,Mean_value,by="country")%>%
+  group_by(continent)%>%
+  summarise(Value = mean(avg_value))
+
+ggplot(data=Value_Continent)+
+  aes(x=continent, y=Value, fill=continent)+
+  geom_col()
+```
+By comparing the % of children suffering from manourishment across each of the continents, it emphasises how certain regions suffer far more from this affliction than others, and indicates that there may be more deep rooted issues influecning this issue.
+```{r}
+Value_data<-select(Indicator_2,country,time_period,obs_value)
+continent_data <- mutate(continent_data, year = as.character(year))
+Value_continent_data<-inner_join(Value_data,continent_data,by = c("country"="country","time_period"="year"))
+
+
+Val_con_data_summary<-Value_continent_data %>%
+  group_by(continent, time_period)%>%
+  summarise(avg_mal=mean(obs_value))
+  
+  ggplot(data=Val_con_data_summary)+
+    aes(x=time_period,y=avg_mal,color=continent,group=continent) +
+    geom_line()
+```
+
+Child malnutrition is an issue that should be hugely concerning to the us all. The thought of the most vulnerable of our society suffering due to poor diet, and the impact that it is having on their livelihoods is extremely worrying.
+We can see how this matter is affected by a nations economic welfare, and this analysis has to provide more incentive for our world leaders to provide more aid to struggling and underdeveloped nations - not for the countries themselves, but for their children.

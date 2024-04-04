@@ -1,0 +1,23 @@
+```{r}
+#| echo: false
+library(dplyr)
+
+# Selecting country and GDP_per_capita columns
+GDP_per_country <- Metadata %>%
+  select(country, GDP_per_capita) %>%
+  filter(!is.na(GDP_per_capita))
+
+# Grouping by country and calculating mean GDP_per_capita
+Mean_GDP <- GDP_per_country %>%
+  group_by(country) %>%
+  summarise(avg_value = mean(GDP_per_capita))
+
+# Inner joining Mean_value and Mean_GDP by country
+GDPvValue <- inner_join(Mean_value, Mean_GDP, by = "country")
+
+ggplot(data = GDPvValue) +
+  aes(x=avg_value.y,
+      y=avg_value.x) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
